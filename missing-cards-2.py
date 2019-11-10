@@ -14,6 +14,7 @@ from decks
 where
   source != 'Personal'
   and (deck_id < 95 or deck_id > 99) -- Ignore New Player Experience decks
+  and name not like 'Artisan%'
 '''
 
 CARD_SQL = '''
@@ -54,7 +55,11 @@ def main():
             rotating_wildcards = collections.defaultdict(int)
             dual_lands = collections.defaultdict(int)
 
+            banned = False
             for name, mtga_id, rarity, types, rotation_date, needed, owned in cards:
+                if name == 'Field of the Dead':
+                    banned = True
+
                 owned = owned or 0
                 if owned < needed:
                     needed_wildcards[rarity] += needed - owned
@@ -73,16 +78,15 @@ def main():
                         if is_dual[mtga_id]:
                             dual_lands[rarity] += needed - owned
 
-            data.append((
-                needed_wildcards['Rare'] + needed_wildcards['Mythic Rare'],
-                rotating_wildcards['Rare'] + rotating_wildcards['Mythic Rare'],
-                dual_lands['Rare'] + dual_lands['Mythic Rare'],
-                deck_id,
-                deck_name
-                ))
+            if not banned and (rotating_wildcards['Rare'] + rotating_wildcards['Mythic Rare'] == 0):
+                data.append((
+                    needed_wildcards['Rare'] + needed_wildcards['Mythic Rare'],
+                    dual_lands['Rare'] + dual_lands['Mythic Rare'],
+                    deck_id,
+                    deck_name))
 
-    for missing_rares, rotating_rares, dual_lands, deck_id, deck_name in sorted(data):
-        print('Deck {} ({}) is missing {} rares, of which {} are rotating and {} are dual lands'.format(deck_name, deck_id, missing_rares, rotating_rares, dual_lands))
+    for missing_rares, dual_lands, deck_id, deck_name in sorted(data):
+        print('Deck {} ({}) is missing {} rares, of {} are dual lands'.format(deck_name, deck_id, missing_rares, dual_lands))
 
 if __name__ == '__main__':
     main()

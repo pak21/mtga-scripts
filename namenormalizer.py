@@ -1,6 +1,6 @@
 import re
 
-class NameNormalizer():
+class ChannelFireballNormalizer():
     def normalize(self, name):
         # Convert "Forest (335)" or similar to just "Forest"
         name = re.sub(r' \([0-9]+\)$', '', name)
@@ -9,14 +9,13 @@ class NameNormalizer():
         if '/' in name and not ' // ' in name:
             name = name.replace('/', ' // ')
 
-        # Box promos
+        # Suffixes
         name = re.sub(r' (- Foil )?(- )?(Buy-a-Box Promo|Brawl Deck Exclusive)', '', name)
-
-        # Borderless
         name = re.sub(r' - Borderless', '', name)
+        name = re.sub(r' - Collector Pack Exclusive', '', name)
 
-        # Arena export metadata
-        name = re.sub(r' \([A-Z0-9]{2,3}\) [0-9]+$', '', name)
+        # Fancy apostrophes
+        name = name.replace('’', "'")
 
         yield name
 
