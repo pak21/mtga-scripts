@@ -14,7 +14,8 @@ from decks
 where
   source != 'Personal'
   and (deck_id < 95 or deck_id > 99) -- Ignore New Player Experience decks
-  and name not like 'Artisan%'
+  and name not like 'Artisan %'
+  and name not like 'Casual %'
 '''
 
 CARD_SQL = '''
@@ -57,7 +58,7 @@ def main():
 
             banned = False
             for name, mtga_id, rarity, types, rotation_date, needed, owned in cards:
-                if name == 'Field of the Dead':
+                if name in ['Field of the Dead', 'Oko, Thief of Crowns', 'Once Upon a Time', 'Veil of Summer', 'Agent of Treachery', 'Fires of Invention']:
                     banned = True
 
                 owned = owned or 0
@@ -72,8 +73,9 @@ def main():
                             abilities = [t[0] for t in cursor.fetchall()]
                             is_shockland = SHOCKLAND_ABILITY_ID in abilities
                             is_checkland = bool(set(abilities).intersection(CHECKLAND_ABILITY_IDS))
-                            is_temple = 'Temple of' in name and ENTERS_TAPPED_ABILITY_ID in abilities
-                            is_dual[mtga_id] = is_shockland or is_checkland or is_temple
+                            is_temple = name.startswith('Temple of ') and ENTERS_TAPPED_ABILITY_ID in abilities
+                            is_triome = name.endswith(' Triome') and ENTERS_TAPPED_ABILITY_ID in abilities
+                            is_dual[mtga_id] = is_shockland or is_checkland or is_temple or is_triome
 
                         if is_dual[mtga_id]:
                             dual_lands[rarity] += needed - owned

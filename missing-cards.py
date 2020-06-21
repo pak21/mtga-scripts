@@ -31,7 +31,10 @@ def main():
             print('You own {} copies of {} ({}) and need {}'.format(owned, name, rarity, needed))
             needed_wildcards[rarity] += needed - owned
 
-    print(needed_wildcards)
+    print()
+    
+    for rarity, count in needed_wildcards.items():
+        print('{}: {}'.format(rarity, count))
 
 if __name__ == '__main__':
     main()

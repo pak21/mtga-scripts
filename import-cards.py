@@ -42,7 +42,7 @@ def main():
             colors = ','.join([COLOR_MAPPING[c] for c in card.color_identity])
             print(card.mtga_id, card.pretty_name, card.set, card.rarity, types, colors)
             cursor.execute(
-                'insert into cards set mtga_id = %s, name = %s, set_id = %s, set_numbers = %s, collectible = %s, rarity = %s, types = %s, color_identity = %s',
+                'insert into cards set mtga_id = %s, name = %s, set_id = %s, set_number = %s, collectible = %s, rarity = %s, types = %s, color_identity = %s',
                 (card.mtga_id, card.pretty_name, card.set, card.set_number, card.collectible, card.rarity, types, colors)
             )
 
