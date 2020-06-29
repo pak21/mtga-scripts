@@ -9,9 +9,9 @@ import mysql.connector as mysql
 COLOR_MAPPING = {
     'W': 'White',
     'U': 'Blue',
+    'B': 'Black',
     'R': 'Red',
-    'G': 'Green',
-    'B': 'Blue'
+    'G': 'Green'
 }
 
 def main():
