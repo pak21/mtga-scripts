@@ -47,11 +47,12 @@ def main():
             title = re.sub(' - .*', '', deck.find('h3').text)
             print(title)
 
-            arena_button = deck.find('div/div[@class="download-btns"]/div/div[@class="icon mtga-icon "]')
-            if arena_button == None:
+            arena_buttons = deck.xpath('//div/div[@class="download-btns"]/div/div[@class="icon mtga-icon "]')
+            if not arena_buttons:
                 print("Couldn't find Arena download button, skipping...\n")
                 continue
 
+            arena_button = arena_buttons[0]
             onclick_text = arena_button.get('onclick')
             onclick_text = re.sub(r'^copy\(\'', '', onclick_text)
             onclick_text = re.sub(r'\'\)$', '', onclick_text)
