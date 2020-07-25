@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import contextlib
 import os
 
@@ -11,9 +12,20 @@ import pandas as pd
 IMPLICIT_DUALS_QUERY="select mtga_id from cards join card_abilities on cards.mtga_id = card_abilities.card_id where cards.types = 'Land' and card_abilities.ability_id >= 1001 and card_abilities.ability_id <= 1005 group by cards.mtga_id having count(*) >= 2"
 
 # Finds all lands with a "{T}: add {<colour>} or {<colour>} ability"; there are
-# 10 of these abilities for each of the colour pairs, hardcoded in the 'in'
-# clause here
-EXPLICIT_DUALS_QUERY="select mtga_id from cards join card_abilities on cards.mtga_id = card_abilities.card_id where cards.types = 'Land' and card_abilities.ability_id in (1039, 1131, 1167, 1203, 1209, 1211, 4247, 4407, 18472, 18504)"
+# 10 of these abilities for each of the colour pairs, hardcoded in the first
+# 'in' clause and 5 of these for the Jumpstart "thriving lands", hardcoded in
+# the second 'in' clause
+EXPLICIT_DUALS_QUERY="""
+select mtga_id
+from cards
+join card_abilities on cards.mtga_id = card_abilities.card_id
+where
+  cards.types = 'Land' and
+  (
+    card_abilities.ability_id in (1039, 1131, 1167, 1203, 1209, 1211, 4247, 4407, 18472, 18504) or
+    card_abilities.ability_id in (138095, 138097, 138099, 138101, 138103)
+  )
+"""
 
 CARD_COUNTS_TEMPLATE="""
 select
@@ -73,6 +85,11 @@ def main():
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', None)
 
+    parser = argparse.ArgumentParser()
+    parser.set_defaults(all_cards=False)
+    parser.add_argument('-a', '--all-cards', action='store_true')
+    args = parser.parse_args()
+
     conn = mysql.connect(database='mtga', user='philip', password=os.environ['DATABASE_PASSWORD'])
     with contextlib.closing(conn.cursor()) as cursor:
         cursor.execute(IMPLICIT_DUALS_QUERY)
@@ -97,7 +114,13 @@ def main():
         dual_types = dual_types[['type']]
 
         combined = duals[['count', 'in_standard']].join(dual_types)
-        print(combined[combined.in_standard & (combined['count'] < 4)])
+
+        missing_duals = combined[combined['count'] < 4]
+
+        if not args.all_cards:
+            missing_duals = missing_duals[missing_duals.in_standard].drop(columns=['in_standard'])
+
+        print(missing_duals)
 
 if __name__ == '__main__':
     main()
