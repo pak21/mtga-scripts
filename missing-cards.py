@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
+import argparse
 import collections
-import contextlib
-import os
-import sys
 
-import mysql.connector as mysql
+import mtga
 
 CARD_SQL = '''
 select cards.name, cards.rarity, deck_cards.main, sum(collection.count)
@@ -17,14 +15,19 @@ where deck_cards.main > 0 and decks.deck_id = %s
 group by cards.name
 '''
 
+def get_data(cursor, deck):
+    cursor.execute(CARD_SQL, (deck,))
+    return cursor.fetchall()
+
 def main():
-    conn = mysql.connect(database='mtga', user='philip', password=os.environ['DATABASE_PASSWORD'])
-    with contextlib.closing(conn.cursor()) as cursor:
-        cursor.execute(CARD_SQL, (sys.argv[1],))
-        cards = cursor.fetchall()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--deck', type=int, help='Deck ID to query')
+    args = parser.parse_args()
+
+    conn = mtga.connect()
+    cards = mtga.with_cursor(conn, lambda cursor: get_data(cursor, args.deck))
 
     needed_wildcards = collections.defaultdict(int)
-
     for name, rarity, needed, owned in cards:
         owned = owned or 0
         if owned < needed:

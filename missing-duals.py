@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
-import contextlib
-import os
 
-import mysql.connector as mysql
 import pandas as pd
+
+import mtga
 
 # Finds all lands with more than one "{T}: add {<colour>}" ability - the five
 # of these have IDs 1001 to 1005
@@ -80,6 +79,27 @@ def calculate_type(card):
 
     return 'Original Dual'
 
+def get_data(cursor):
+    cursor.execute(IMPLICIT_DUALS_QUERY)
+    implicit_duals = cursor.fetchall()
+
+    cursor.execute(EXPLICIT_DUALS_QUERY)
+    explicit_duals = cursor.fetchall()
+
+    duals_sql = ', '.join([str(t[0]) for t in implicit_duals + explicit_duals])
+    cards_query = CARD_COUNTS_TEMPLATE.format(duals_sql)
+    cursor.execute(cards_query)
+    duals = pd.DataFrame(cursor.fetchall(), columns=['mtga_id', 'name', 'count', 'in_standard']).set_index('name')
+    duals.in_standard = duals.in_standard.astype(bool)
+
+    duals_sql2 = ', '.join([str(i) for i in duals.mtga_id])
+    abilities_query = CARD_ABILITIES_TEMPLATE.format(duals_sql2)
+    cursor.execute(abilities_query)
+
+    dual_types = pd.DataFrame(cursor.fetchall(), columns=['name', 'is_shock', 'is_tap', 'is_check', 'is_gate', 'is_scry', 'is_gain']).set_index('name')
+
+    return (duals, dual_types)
+
 def main():
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
@@ -90,37 +110,19 @@ def main():
     parser.add_argument('-a', '--all-cards', action='store_true')
     args = parser.parse_args()
 
-    conn = mysql.connect(database='mtga', user='philip', password=os.environ['DATABASE_PASSWORD'])
-    with contextlib.closing(conn.cursor()) as cursor:
-        cursor.execute(IMPLICIT_DUALS_QUERY)
-        implicit_duals = cursor.fetchall()
+    duals, dual_types = mtga.with_cursor(mtga.connect(), get_data)
+    
+    dual_types['type'] = dual_types.apply(calculate_type, axis=1)
+    dual_types = dual_types[['type']]
 
-        cursor.execute(EXPLICIT_DUALS_QUERY)
-        explicit_duals = cursor.fetchall()
+    combined = duals[['count', 'in_standard']].join(dual_types)
 
-        duals_sql = ', '.join([str(t[0]) for t in implicit_duals + explicit_duals])
-        cards_query = CARD_COUNTS_TEMPLATE.format(duals_sql)
-        cursor.execute(cards_query)
-        duals = pd.DataFrame(cursor.fetchall(), columns=['mtga_id', 'name', 'count', 'in_standard']).set_index('name')
-        duals.in_standard = duals.in_standard.astype(bool)
+    missing_duals = combined[combined['count'] < 4]
 
-        duals_sql2 = ', '.join([str(i) for i in duals.mtga_id])
-        abilities_query = CARD_ABILITIES_TEMPLATE.format(duals_sql2)
-        cursor.execute(abilities_query)
+    if not args.all_cards:
+        missing_duals = missing_duals[missing_duals.in_standard].drop(columns=['in_standard'])
 
-        dual_types = pd.DataFrame(cursor.fetchall(), columns=['name', 'is_shock', 'is_tap', 'is_check', 'is_gate', 'is_scry', 'is_gain']).set_index('name')
-
-        dual_types['type'] = dual_types.apply(calculate_type, axis=1)
-        dual_types = dual_types[['type']]
-
-        combined = duals[['count', 'in_standard']].join(dual_types)
-
-        missing_duals = combined[combined['count'] < 4]
-
-        if not args.all_cards:
-            missing_duals = missing_duals[missing_duals.in_standard].drop(columns=['in_standard'])
-
-        print(missing_duals)
+    print(missing_duals)
 
 if __name__ == '__main__':
     main()
