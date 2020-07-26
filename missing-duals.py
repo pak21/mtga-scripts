@@ -2,13 +2,23 @@
 
 import argparse
 
+import numpy as np
 import pandas as pd
 
 import mtga
 
 # Finds all lands with more than one "{T}: add {<colour>}" ability - the five
 # of these have IDs 1001 to 1005
-IMPLICIT_DUALS_QUERY="select mtga_id from cards join card_abilities on cards.mtga_id = card_abilities.card_id where cards.types = 'Land' and card_abilities.ability_id >= 1001 and card_abilities.ability_id <= 1005 group by cards.mtga_id having count(*) >= 2"
+IMPLICIT_DUALS_QUERY="""
+select mtga_id, count(*)
+from cards
+join card_abilities on cards.mtga_id = card_abilities.card_id
+where
+  cards.types = 'Land' and
+  card_abilities.ability_id >= 1001 and card_abilities.ability_id <= 1005
+group by cards.mtga_id
+having count(*) >= 2
+"""
 
 # Finds all lands with a "{T}: add {<colour>} or {<colour>} ability"; there are
 # 10 of these abilities for each of the colour pairs, hardcoded in the first
@@ -42,6 +52,7 @@ group by cards.name
 CARD_ABILITIES_TEMPLATE="""
 select
   cards.name,
+  cards.mtga_id,
   shock.ability_id is not null,
   tap.ability_id is not null,
   `check`.ability_id is not null,
@@ -74,6 +85,9 @@ def calculate_type(card):
     if card.is_scry:
         return 'Scryland'
 
+    if card.colours == 3:
+        return 'Triome'
+
     if card.is_tap:
         return 'Tapland'
 
@@ -81,12 +95,13 @@ def calculate_type(card):
 
 def get_data(cursor):
     cursor.execute(IMPLICIT_DUALS_QUERY)
-    implicit_duals = cursor.fetchall()
+    implicit_duals = pd.DataFrame(cursor.fetchall(), columns=['mtga_id', 'colours']).set_index('mtga_id')
 
     cursor.execute(EXPLICIT_DUALS_QUERY)
-    explicit_duals = cursor.fetchall()
+    explicit_duals = [t[0] for t in cursor.fetchall()]
 
-    duals_sql = ', '.join([str(t[0]) for t in implicit_duals + explicit_duals])
+    all_ids = np.append(implicit_duals.index.values, explicit_duals)
+    duals_sql = ', '.join([str(i) for i in all_ids])
     cards_query = CARD_COUNTS_TEMPLATE.format(duals_sql)
     cursor.execute(cards_query)
     duals = pd.DataFrame(cursor.fetchall(), columns=['mtga_id', 'name', 'count', 'in_standard']).set_index('name')
@@ -96,7 +111,9 @@ def get_data(cursor):
     abilities_query = CARD_ABILITIES_TEMPLATE.format(duals_sql2)
     cursor.execute(abilities_query)
 
-    dual_types = pd.DataFrame(cursor.fetchall(), columns=['name', 'is_shock', 'is_tap', 'is_check', 'is_gate', 'is_scry', 'is_gain']).set_index('name')
+    dual_types = pd.DataFrame(cursor.fetchall(), columns=['name', 'mtga_id', 'is_shock', 'is_tap', 'is_check', 'is_gate', 'is_scry', 'is_gain']).set_index('name')
+    dual_types = dual_types.join(implicit_duals, on='mtga_id')
+    dual_types.colours = dual_types.colours.fillna(2).astype(int)
 
     return (duals, dual_types)
 
