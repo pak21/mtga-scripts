@@ -29,15 +29,18 @@ def main():
 
     conn = mysql.connect(database='mtga', user='philip', password=os.environ['DATABASE_PASSWORD'])
     with contextlib.closing(conn.cursor()) as cursor:
-        cursor.execute('select cards.mtga_id, cards.name, cards.rarity, cards.types, cards.set_id, cards.color_identity from cards where name like %s', ('%{}%'.format(args.card),))
-        for mtga_id, name, rarity, types, set_id, colors in cursor.fetchall():
+        cursor.execute(
+            'select cards.mtga_id, cards.name, cards.rarity, cards.types, cards.power, cards.toughness, cards.set_id, cards.color_identity from cards where name like %s',
+            ('%{}%'.format(args.card),)
+        )
+        for mtga_id, name, rarity, types, power, toughness, set_id, colors in cursor.fetchall():
             types_string = ', '.join(types)
             colors_string = ', '.join(colors)
 
             cursor.execute(SUBTYPES_SQL, (mtga_id,))
             subtypes = ', '.join([t[0] for t in cursor.fetchall()])
 
-            print('{} ({}) - {} ({}) ({}) - {}'.format(name, set_id, types_string, subtypes, colors_string, rarity))
+            print('{} ({}) {}/{} - {} ({}) ({}) - {}'.format(name, set_id, power, toughness, types_string, subtypes, colors_string, rarity))
             print()
 
             cursor.execute(ABILITIES_SQL, (mtga_id,))
