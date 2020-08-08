@@ -14,6 +14,21 @@ COLOR_MAPPING = {
     'G': 'Green'
 }
 
+ADD_CARD_SQL="""
+insert into cards
+set
+  mtga_id = %s,
+  name = %s,
+  set_id = %s,
+  set_number = %s,
+  collectible = %s,
+  rarity = %s,
+  types = %s,
+  power = %s,
+  toughness = %s,
+  color_identity = %s
+"""
+
 def main():
     conn = mysql.connect(database='mtga', user='philip', password=os.environ['DATABASE_PASSWORD'])
     with contextlib.closing(conn.cursor()) as cursor:
@@ -42,8 +57,7 @@ def main():
             colors = ','.join([COLOR_MAPPING[c] for c in card.color_identity])
             print(card.mtga_id, card.pretty_name, card.set, card.rarity, types, colors)
             cursor.execute(
-                'insert into cards set mtga_id = %s, name = %s, set_id = %s, set_number = %s, collectible = %s, rarity = %s, types = %s, color_identity = %s',
-                (card.mtga_id, card.pretty_name, card.set, card.set_number, card.collectible, card.rarity, types, colors)
+                ADD_CARD_SQL, (card.mtga_id, card.pretty_name, card.set, card.set_number, card.collectible, card.rarity, types, card.power, card.toughness, colors)
             )
 
             card_subtypes = card.sub_types.split()
