@@ -23,6 +23,7 @@ set
   set_number = %s,
   collectible = %s,
   rarity = %s,
+  artist = %s,
   types = %s,
   power = %s,
   toughness = %s,
@@ -49,6 +50,18 @@ def main():
         cursor.execute('select id, name from card_subtypes')
         subtypes = {name: subtype_id for subtype_id, name in cursor.fetchall()}
 
+        cursor.execute('select name from artists')
+        known_artists = set([row[0] for row in cursor.fetchall()])
+
+        for card in mtga.set_data.all_mtga_cards.cards:
+            if card.artist not in known_artists:
+                print('Adding {}'.format(card.artist))
+                cursor.execute('insert into artists set name = %s', (card.artist,))
+                known_artists.add(card.artist)
+
+        cursor.execute('select id, name from artists')
+        artists = {name: id for id, name in cursor.fetchall()}
+
         cursor.execute('select mtga_id from cards')
         known_cards = set([row[0] for row in cursor.fetchall()])
 
@@ -57,7 +70,11 @@ def main():
             colors = ','.join([COLOR_MAPPING[c] for c in card.color_identity])
             print(card.mtga_id, card.pretty_name, card.set, card.rarity, types, colors)
             cursor.execute(
-                ADD_CARD_SQL, (card.mtga_id, card.pretty_name, card.set, card.set_number, card.collectible, card.rarity, types, card.power, card.toughness, colors)
+                ADD_CARD_SQL,
+                (
+                    card.mtga_id, card.pretty_name, card.set, card.set_number, card.collectible, card.rarity,
+                    card.artist, types, card.power, card.toughness, colors
+                )
             )
 
             card_subtypes = card.sub_types.split()
