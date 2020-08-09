@@ -98,6 +98,8 @@ def main():
                 cards[name] = tuple(sum(i) for i in zip(cards[name], counts))
 
             for name, counts in cards.items():
+                if name == 'Lurrus of the Dream-Den':
+                    name = 'Lurrus of the Dream Den'
                 is_companion = name == companion
                 cursor.execute('insert into deck_cards set deck_id = %s, name = %s, main = %s, sideboard = %s, is_companion = %s', (deck_id, name, *counts, is_companion))
 
