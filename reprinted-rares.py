@@ -9,7 +9,7 @@ select cards.name, cards.rarity, count(distinct set_id) as n
 from cards
 where
   cards.rarity in ('Rare', 'Mythic Rare') and
-  cards.set_id not in ('G18', 'ANA', 'SLD') and
+  cards.set_id not in ('G18', 'ANA', 'ANB', 'SLD') and
   ({} or cards.set_id != 'JMP')
 group by cards.name
 having n > 1
