@@ -47,7 +47,7 @@ def main():
             title = re.sub(' - .*', '', deck.find('h3').text)
             print(title)
 
-            arena_buttons = deck.xpath('//div/div[@class="download-btns"]/div/div[@class="icon mtga-icon "]')
+            arena_buttons = deck.xpath('.//div[@class="icon mtga-icon "]')
             if not arena_buttons:
                 print("Couldn't find Arena download button, skipping...\n")
                 continue
