@@ -23,7 +23,7 @@ set
   set_number = %s,
   collectible = %s,
   rarity = %s,
-  artist = %s,
+  artist_id = %s,
   types = %s,
   power = %s,
   toughness = %s,
@@ -68,12 +68,13 @@ def main():
         for card in [card for card in mtga.set_data.all_mtga_cards.cards if card.mtga_id not in known_cards]:
             types = ','.join([t for t in card.card_type.split(' ') if t != ''])
             colors = ','.join([COLOR_MAPPING[c] for c in card.color_identity])
+            artist_id = artists[card.artist]
             print(card.mtga_id, card.pretty_name, card.set, card.rarity, types, colors)
             cursor.execute(
                 ADD_CARD_SQL,
                 (
                     card.mtga_id, card.pretty_name, card.set, card.set_number, card.collectible, card.rarity,
-                    card.artist, types, card.power, card.toughness, colors
+                    artist_id, types, card.power, card.toughness, colors
                 )
             )
 
@@ -83,6 +84,9 @@ def main():
 
             for ability_id in card.abilities:
                 cursor.execute('insert into card_abilities set card_id = %s, ability_id = %s', (card.mtga_id, ability_id))
+
+            for style in card.styles:
+                cursor.execute('insert into card_styles_link set card_id = %s, style_id = %s', (card.mtga_id, style))
 
     conn.commit()
 
