@@ -58,7 +58,8 @@ select
   `check`.ability_id is not null,
   gate.subtype_id is not null,
   scry.ability_id is not null,
-  gain.ability_id is not null
+  gain.ability_id is not null,
+  cycling.ability_id is not null
 from cards
 left join card_abilities as shock on cards.mtga_id = shock.card_id and shock.ability_id = 90846
 left join card_abilities as tap on cards.mtga_id = tap.card_id and tap.ability_id = 76735
@@ -66,6 +67,7 @@ left join card_abilities as `check` on cards.mtga_id = `check`.card_id and `chec
 left join card_subtypes_link as gate on cards.mtga_id = gate.card_id and gate.subtype_id = 58
 left join card_abilities as scry on cards.mtga_id = scry.card_id and scry.ability_id = 91717
 left join card_abilities as gain on cards.mtga_id = gain.card_id and gain.ability_id = 90050
+left join card_abilities as cycling on cards.mtga_id = cycling.card_id and cycling.ability_id = 2296
 where cards.mtga_id in ({})
 """
 
@@ -84,6 +86,9 @@ def calculate_type(card):
 
     if card.is_scry:
         return 'Scryland'
+
+    if card.is_cycling:
+        return 'Cycling'
 
     if card.colours == 3:
         return 'Triome'
@@ -111,7 +116,7 @@ def get_data(cursor):
     abilities_query = CARD_ABILITIES_TEMPLATE.format(duals_sql2)
     cursor.execute(abilities_query)
 
-    dual_types = pd.DataFrame(cursor.fetchall(), columns=['name', 'mtga_id', 'is_shock', 'is_tap', 'is_check', 'is_gate', 'is_scry', 'is_gain']).set_index('name')
+    dual_types = pd.DataFrame(cursor.fetchall(), columns=['name', 'mtga_id', 'is_shock', 'is_tap', 'is_check', 'is_gate', 'is_scry', 'is_gain', 'is_cycling']).set_index('name')
     dual_types = dual_types.join(implicit_duals, on='mtga_id')
     dual_types.colours = dual_types.colours.fillna(2).astype(int)
 
