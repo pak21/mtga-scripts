@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import pandas as pd
+
 import mtga
 
 CARDS_SQL="""
@@ -13,6 +15,7 @@ order by n desc, cards.name
 """
 
 def main():
+    pd.set_option('display.max_rows', None)
     print(mtga.with_cursor(mtga.connect(), mtga.get_dataframe(CARDS_SQL, ['name', 'rarity', 'count'])))
 
 if __name__ == '__main__':
