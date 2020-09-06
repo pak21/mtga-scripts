@@ -40,6 +40,19 @@ CHECKLAND_ABILITY_IDS = [1210, 91993, 92859, 92868, 92880, 99478, 99480, 99484, 
 # The generic "enters the battlefield tapped" ability
 ENTERS_TAPPED_ABILITY_ID = 76735
 
+BANNED_CARDS = [
+    'Agent of Treachery',
+    'Cauldron Familiar',
+    'Field of the Dead',
+    'Fires of Invention',
+    'Growth Spiral',
+    'Oko, Thief of Crowns',
+    'Once Upon a Time',
+    'Teferi, Time Raveler',
+    'Veil of Summer',
+    'Wilderness Reclamation'
+]
+
 def main():
     data = []
     is_dual = {}
@@ -58,7 +71,7 @@ def main():
 
             banned = False
             for name, mtga_id, rarity, types, rotation_date, needed, owned in cards:
-                if name in ['Field of the Dead', 'Oko, Thief of Crowns', 'Once Upon a Time', 'Veil of Summer', 'Agent of Treachery', 'Fires of Invention']:
+                if name in BANNED_CARDS:
                     banned = True
 
                 owned = owned or 0
